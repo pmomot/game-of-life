@@ -265,6 +265,9 @@ button.ghost { background: transparent; color: var(--dim); }
   z-index: 10;
 }
 .overlay.hidden { display: none; }
+/* Result cards cover only the board, so the header, the mode switcher and the
+   level chips stay reachable while one is up. Help panels stay properly modal. */
+.overlay.inline { position: absolute; }
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
