@@ -5,10 +5,10 @@ const { minimal } = require('./search');
 const { mapFor } = require('./generate');
 
 global.window = {};
-eval(fs.readFileSync('../levels.js', 'utf8'));
+eval(fs.readFileSync(__dirname + '/../levels.js', 'utf8'));
 
 const maps = [];
-for (const l of window.LIFE_LEVELS) maps.push({ id: 'clear:' + l.key, map: l.map, par: l.par });
+for (const l of window.LIFE_LEVELS.clear) maps.push({ id: 'clear:' + l.key, map: l.map, par: l.par });
 for (let seed = 1; seed <= 140; seed++) maps.push({ id: 'seed:' + seed, map: mapFor(seed) });
 
 const rows = [];
@@ -33,4 +33,4 @@ for (const r of rows.slice(0, 18))
 console.log('\nroomiest:');
 for (const r of rows.slice().sort((a, b) => b.count - a.count).slice(0, 8))
   console.log(`  ${r.id.padEnd(22)} k=${r.k}  ${String(r.count).padStart(3)} placement(s)  dirt ${String(r.dirt).padStart(2)}  clears in ${r.gens}`);
-fs.writeFileSync('hold-scan.json', JSON.stringify(rows));
+fs.writeFileSync(__dirname + '/hold-scan.json', JSON.stringify(rows));
