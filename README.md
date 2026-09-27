@@ -12,7 +12,7 @@ Two modes, switchable from the header on either page:
 | --- | --- | --- |
 | **Sandbox** | [`index.html`](https://pmomot.github.io/game-of-life/) | Draw, stamp patterns, run the board. |
 | **2 players** | [`versus.html`](https://pmomot.github.io/game-of-life/versus.html) | Hot-seat territory game on one device. |
-| **Puzzles** | [`puzzle.html`](https://pmomot.github.io/game-of-life/puzzle.html) | Clear a dirty board with as few cells as you can. |
+| **Puzzles** | [`puzzle.html`](https://pmomot.github.io/game-of-life/puzzle.html) | Four goals over the same engine: Clear, Hold on, Bloom, Sweep. |
 
 There is no build step and no server — open either file in a browser. The two
 `game-of-life*.html` files are self-contained single-file builds of the same
@@ -70,36 +70,62 @@ Tap a cell you placed this turn to take it back and get the energy refunded.
 
 ## Puzzles
 
-A board starts covered in dirt. Add as few cells of your own as you can, press Run,
-and let ordinary Life rules do the rest. You win when **nothing** is left alive —
-your own cells have to die too.
+Four goals share one engine: a bounded board where your cells and the dirt are
+told apart by colour. Pick a goal from the row of tabs, then a level.
 
-These boards are **bounded**, unlike the other two modes. On a torus a glider that
-escapes is immortal, so the board could never empty; with walls, debris falls off the
-edge, which is usually what you want. **Rock** is inert: nothing lives on it and you
-cannot build there. An attempt fails when the board settles into something that will
-never die, or is still going after 400 generations.
+These boards **do not wrap**, unlike the other two modes. On a torus an escaping
+glider is immortal, so a board could never be emptied or settle. **Rock** is inert:
+nothing lives on it and you cannot build there.
 
-### "Fewest possible" is proven, not a guess
+| Goal | You do this | Scored on |
+| --- | --- | --- |
+| **Clear** | Empty the board. | Cells used |
+| **Hold on** | Empty it, but if only dirt is left alive you have lost. | Cells used |
+| **Bloom** | Add up to two cells and grow the board by generation 40. | Cells alive |
+| **Sweep** | Make every marked square be alive at least once. | Generations |
 
-`tools/solve.js` searches *every* placement of one cell, then two, then three, near
-the dirt, and simulates each to see whether the board empties. A level only ships
-with the smallest k that works — the number the game shows as "fewest possible" —
-along with how many placements at that k succeed, the honest measure of how tight
-it is. Placements far from the dirt cannot matter at
-these sizes: one or two lone cells die immediately and three make a block or a
-blinker, so anything useful has to touch the dirt's neighbourhood.
+**Hold on** is the same idea as Clear with one extra rule, and it changes everything:
+your own lineage has to outlast the dirt. A colour is inherited by majority of a
+newborn's three parents, so your cells can be outvoted and wiped out while the
+cascade carries on without you. None of the thirteen Clear answers survive their own
+solution — *Bedrock* is cleared by one cell, and that same cell dies at generation 1
+when you play the board in Hold on.
 
-`tools/generate.js` scatters still lifes and oscillators on a 16×12 board, solves
-each layout, and reports the tightest — that is where most of the levels came from.
-Of 882 random layouts, 881 were solvable with two cells or fewer, so the game is
-about finding the exact square rather than spending more cells.
+**Bloom** is the inverse of Clear: instead of spending as little as possible, you are
+looking for the two cells that set the most off. The swing is large — *Tinder* sits
+at 10 alive if you leave it alone and reaches 64 with the right pair.
 
-The thirteen levels run from *First speck* (one cell, sixteen placements work) to
-*Two of a kind* (two cells, exactly one pair in the whole board works). Seven of
-them have a single solution. A level number shows ★ when you cleared it with the
-fewest possible cells and ✓ when you cleared it with more. Best scores are kept in `localStorage`; a level solved with
-**Reveal** is marked as revealed rather than scored.
+**Sweep** marks a zone that must be visited rather than the whole board. Requiring
+every cell of a full board turned out to be a lottery — about 1% of sane attempts
+manage it — so levels mark a zone instead. Chaos is usually the tool of choice, but
+not always: *The long hall* is swept by a lightweight spaceship in 23 generations,
+and *Pillars* needs two different seeds because no single one reaches all three bays.
+
+### Where the targets come from
+
+`tools/` holds the level pipeline, and every number a level ships with is produced
+by the search that proves it, never typed in by hand.
+
+* **Clear, Hold on and Bloom are exhaustive.** `tools/search.js` tries every
+  placement of one cell, then two, then three near the dirt and simulates each.
+  "Fewest possible 1" means no single cell anywhere does better; "best possible 55"
+  means no pair reaches 56. Placements far from the dirt cannot matter at these
+  sizes: one or two lone cells die immediately, and three make a block or a blinker.
+* **Sweep is a best known, not a proof.** `tools/sweep-scan.js` searches gliders,
+  spaceships, R-pentominoes and the rest at every position and orientation. Beating
+  one of those numbers is a real result, and the game says so when you do.
+* `tools/generate.js` scatters still lifes and oscillators on a 16×12 board and
+  grades the layouts; that is where most Clear and Hold boards came from. Of 882
+  random layouts, 881 were clearable with two cells or fewer, which is why the game
+  is about finding the exact square rather than spending more cells.
+
+A browser test replays every stored answer through the game's own simulation and
+checks it reproduces the solver's number exactly — all 29 levels across the four
+goals agree, cell for cell.
+
+Level numbers show ★ when you matched the target and ✓ when you finished short of it.
+Best scores live in `localStorage`; a level solved with **Reveal** is marked as
+revealed rather than scored.
 
 ## Presets
 
@@ -135,9 +161,12 @@ holds the display refresh rate.
 
 * `index.html` / `app.js` — sandbox
 * `versus.html` / `versus.js` — two-player mode
-* `puzzle.html` / `puzzle.js` — puzzle mode
+* `puzzle.html` / `puzzle.js` — puzzle modes (all four goals)
 * `patterns.js` — pattern library shared by the first two modes
 * `levels.js` — generated puzzle levels; edit `tools/`, not this
-* `tools/solve.js`, `tools/generate.js`, `tools/emit.js` — the level pipeline
+* `tools/` — the level pipeline: `engine.js` (the shared simulation), `solve.js`
+  and `search.js` (exhaustive placement search), `generate.js` (layout scatter),
+  `sweep-scan.js` and `arenas.js` (sweep zones), `emit-challenges.js` (writes
+  `levels.js`)
 * `styles.css` — dark, touch-friendly layout
 * `build.py` — regenerates the three single-file builds; run it after editing anything

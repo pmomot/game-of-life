@@ -21,26 +21,22 @@
       <a href="versus.html" class="mode">2 players</a>
       <a href="puzzle.html" class="mode active" aria-current="page">Puzzles</a>
     </nav>
-    <div class="stats">
-      <span><b id="stat-used">0</b> cells used</span>
-      <span class="goal">fewest possible <b id="stat-par">1</b></span>
-      <span><b id="stat-dirt">0</b> still alive</span>
-      <span><b id="stat-gen">0</b> gen</span>
+    <div class="stats" id="stats">
+      <span><b id="s0v">0</b> <span id="s0l">cells used</span></span>
+      <span class="goal"><span id="s1l">fewest possible</span> <b id="s1v">1</b></span>
+      <span><b id="s2v">0</b> <span id="s2l">still alive</span></span>
+      <span><b id="s3v">0</b> <span id="s3l">gen</span></span>
     </div>
   </header>
 
   <div class="bar levels">
-    <span class="presets-label">Level</span>
-    <div id="level-chips" class="chips"></div>
+    <span class="presets-label">Goal</span>
+    <div id="goal-chips" class="chips"></div>
   </div>
 
-  <div class="bar turnbar">
-    <span class="turn-label" id="level-title">First speck</span>
-    <span class="turn-sub dim" id="level-blurb"></span>
-    <span class="spacer"></span>
-    <button id="btn-run" class="primary">▶ Run</button>
-    <button id="btn-reset">↺ Reset</button>
-    <button id="btn-reveal" class="ghost">Reveal</button>
+  <div class="bar levels">
+    <span class="presets-label">Level</span>
+    <div id="level-chips" class="chips"></div>
   </div>
 
   <main id="stage">
@@ -57,7 +53,11 @@
     </div>
   </main>
 
-  <div class="bar controls">
+  <div class="bar actions">
+    <button id="btn-run" class="primary">▶ Run</button>
+    <button id="btn-reset">↺ Reset</button>
+    <button id="btn-reveal" class="ghost">Reveal</button>
+    <span class="spacer"></span>
     <label class="slider">
       <span>Speed</span>
       <input id="speed" type="range" min="8" max="60" value="26">
@@ -68,20 +68,21 @@
   </div>
 
   <footer class="bar hint">
-    <span id="hint">Tap empty cells to add your own, then press Run. Clear every cell off the board.</span>
+    <span id="hint"></span>
   </footer>
 
   <div id="help" class="overlay hidden">
     <div class="card wide">
       <h2>How to play</h2>
+      <p id="help-goal"></p>
       <ul>
-        <li><b>The board is dirty.</b> Add as few cells of your own as you can, press Run, and let ordinary Life rules do the rest. You win when <i>nothing</i> is left alive — your own cells have to die too.</li>
-        <li><b>"Fewest possible" is proven, not estimated.</b> A solver searched every placement of one cell, then two, then three, and simulated each one. If a board says it can be cleared with one cell, then one cell really does clear it — and no placement of any single cell elsewhere would have worked any better.</li>
-        <li><b>The level numbers</b> show ★ when you cleared that board with the fewest possible cells, and ✓ when you cleared it with more.</li>
-        <li><b>Rock</b> is inert: nothing can live there and you cannot build on it. It blocks and it absorbs.</li>
+        <li><b>Add cells by tapping</b> empty squares, then press Run and let ordinary Life rules take over. Tap a cell again to take it back.</li>
+        <li><b>Dirt</b> is the ochre stuff already on the board. You cannot remove it by hand — only Life can.</li>
+        <li><b>Rock</b> is inert: nothing lives on it and you cannot build there.</li>
         <li><b>These boards do not wrap</b>, unlike the other two modes. Cells that reach an edge fall off, which is often exactly what you want.</li>
-        <li><b>It fails</b> when the board settles into something that will never die — a still life or a blinker — or when it is still going after 400 generations.</li>
-        <li>Stuck? <b>Reveal</b> shows a solution, but the level will be marked as revealed rather than solved.</li>
+        <li><b>Clear, Hold on and Bloom targets are proven.</b> A solver tried every placement of one cell, then two, then three, and simulated each. When a board says one cell is enough, one cell really is enough — and when it says 55 is the most you can grow it to, nothing does better.</li>
+        <li><b>Sweep targets are the best known</b>, not a proof: they come from searching gliders, spaceships and other patterns at every position. Beat one and you have found something the search missed.</li>
+        <li><b>Level numbers</b> show ★ when you matched the target and ✓ when you finished short of it. Stuck? <b>Reveal</b> shows an answer, but the level is then marked as revealed rather than scored.</li>
       </ul>
       <button id="btn-help-close" class="primary">Got it</button>
     </div>

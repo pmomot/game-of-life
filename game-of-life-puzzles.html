@@ -326,6 +326,16 @@ button.ghost { background: transparent; color: var(--dim); }
   border-radius: 4px;
   box-shadow: 0 0 0 1px #2f3949, 0 8px 30px rgba(0, 0, 0, .45);
 }
+
+/* --------------------------------------------------------- puzzle action bar */
+.actions { gap: 8px; }
+.actions .spacer { flex: 1 1 auto; }
+@media (max-width: 720px) {
+  .actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .actions::-webkit-scrollbar { display: none; }
+  .actions > * { flex: 0 0 auto; }
+  .actions .spacer { display: none; }
+}
 </style>
 </head>
 <body>
@@ -337,26 +347,22 @@ button.ghost { background: transparent; color: var(--dim); }
       <a href="https://pmomot.github.io/game-of-life/versus.html" class="mode">2 players</a>
       <a href="https://pmomot.github.io/game-of-life/puzzle.html" class="mode active" aria-current="page">Puzzles</a>
     </nav>
-    <div class="stats">
-      <span><b id="stat-used">0</b> cells used</span>
-      <span class="goal">fewest possible <b id="stat-par">1</b></span>
-      <span><b id="stat-dirt">0</b> still alive</span>
-      <span><b id="stat-gen">0</b> gen</span>
+    <div class="stats" id="stats">
+      <span><b id="s0v">0</b> <span id="s0l">cells used</span></span>
+      <span class="goal"><span id="s1l">fewest possible</span> <b id="s1v">1</b></span>
+      <span><b id="s2v">0</b> <span id="s2l">still alive</span></span>
+      <span><b id="s3v">0</b> <span id="s3l">gen</span></span>
     </div>
   </header>
 
   <div class="bar levels">
-    <span class="presets-label">Level</span>
-    <div id="level-chips" class="chips"></div>
+    <span class="presets-label">Goal</span>
+    <div id="goal-chips" class="chips"></div>
   </div>
 
-  <div class="bar turnbar">
-    <span class="turn-label" id="level-title">First speck</span>
-    <span class="turn-sub dim" id="level-blurb"></span>
-    <span class="spacer"></span>
-    <button id="btn-run" class="primary">▶ Run</button>
-    <button id="btn-reset">↺ Reset</button>
-    <button id="btn-reveal" class="ghost">Reveal</button>
+  <div class="bar levels">
+    <span class="presets-label">Level</span>
+    <div id="level-chips" class="chips"></div>
   </div>
 
   <main id="stage">
@@ -373,7 +379,11 @@ button.ghost { background: transparent; color: var(--dim); }
     </div>
   </main>
 
-  <div class="bar controls">
+  <div class="bar actions">
+    <button id="btn-run" class="primary">▶ Run</button>
+    <button id="btn-reset">↺ Reset</button>
+    <button id="btn-reveal" class="ghost">Reveal</button>
+    <span class="spacer"></span>
     <label class="slider">
       <span>Speed</span>
       <input id="speed" type="range" min="8" max="60" value="26">
@@ -384,20 +394,21 @@ button.ghost { background: transparent; color: var(--dim); }
   </div>
 
   <footer class="bar hint">
-    <span id="hint">Tap empty cells to add your own, then press Run. Clear every cell off the board.</span>
+    <span id="hint"></span>
   </footer>
 
   <div id="help" class="overlay hidden">
     <div class="card wide">
       <h2>How to play</h2>
+      <p id="help-goal"></p>
       <ul>
-        <li><b>The board is dirty.</b> Add as few cells of your own as you can, press Run, and let ordinary Life rules do the rest. You win when <i>nothing</i> is left alive — your own cells have to die too.</li>
-        <li><b>"Fewest possible" is proven, not estimated.</b> A solver searched every placement of one cell, then two, then three, and simulated each one. If a board says it can be cleared with one cell, then one cell really does clear it — and no placement of any single cell elsewhere would have worked any better.</li>
-        <li><b>The level numbers</b> show ★ when you cleared that board with the fewest possible cells, and ✓ when you cleared it with more.</li>
-        <li><b>Rock</b> is inert: nothing can live there and you cannot build on it. It blocks and it absorbs.</li>
+        <li><b>Add cells by tapping</b> empty squares, then press Run and let ordinary Life rules take over. Tap a cell again to take it back.</li>
+        <li><b>Dirt</b> is the ochre stuff already on the board. You cannot remove it by hand — only Life can.</li>
+        <li><b>Rock</b> is inert: nothing lives on it and you cannot build there.</li>
         <li><b>These boards do not wrap</b>, unlike the other two modes. Cells that reach an edge fall off, which is often exactly what you want.</li>
-        <li><b>It fails</b> when the board settles into something that will never die — a still life or a blinker — or when it is still going after 400 generations.</li>
-        <li>Stuck? <b>Reveal</b> shows a solution, but the level will be marked as revealed rather than solved.</li>
+        <li><b>Clear, Hold on and Bloom targets are proven.</b> A solver tried every placement of one cell, then two, then three, and simulated each. When a board says one cell is enough, one cell really is enough — and when it says 55 is the most you can grow it to, nothing does better.</li>
+        <li><b>Sweep targets are the best known</b>, not a proof: they come from searching gliders, spaceships and other patterns at every position. Beat one and you have found something the search missed.</li>
+        <li><b>Level numbers</b> show ★ when you matched the target and ✓ when you finished short of it. Stuck? <b>Reveal</b> shows an answer, but the level is then marked as revealed rather than scored.</li>
       </ul>
       <button id="btn-help-close" class="primary">Got it</button>
     </div>
@@ -405,258 +416,727 @@ button.ghost { background: transparent; color: var(--dim); }
 </div>
 <script>
 /* levels.js */
-/* Puzzle levels. Generated by tools/emit.js — do not edit by hand.
+/* Puzzle levels for all four goals. Generated by tools/emit-challenges.js —
+   do not edit by hand.
 
-   Every par is a proven minimum: tools/solve.js searches all placements of k
-   cells near the dirt, smallest k first, and simulates each to see whether the
-   board empties. "solutions" is how many placements at par work, which is the
-   honest measure of how tight a level is. The stored solution is one of them,
-   used by the Reveal button.
+   clear / hold / bloom targets are exhaustive results: tools/search.js tries
+   every placement of k cells near the dirt, so "fewest possible" and "best
+   possible" mean exactly that. Sweep targets are the best a search over
+   pattern stamps could find, which is an honest best known rather than a
+   proof — beating one is a real result.
 
-   Map legend: '.' empty, 'o' dirt, '#' rock. */
-window.LIFE_LEVELS = [
-  {
-    "key": "first-speck",
-    "title": "First speck",
-    "blurb": "One block of grime. A single cell is enough — find where.",
-    "map": "................\n................\n................\n................\n................\n.......oo.......\n.......oo.......\n................\n................\n................\n................\n................",
-    "par": 1,
-    "solutions": 16,
-    "gens": 5,
-    "solution": [
-      [
-        6,
-        3
-      ]
-    ]
+   Map legend: '.' empty, 'o' dirt, '#' rock, '*' a cell that must be visited. */
+window.LIFE_GOALS = {
+  "clear": {
+    "key": "clear",
+    "name": "Clear",
+    "verb": "fewest cells",
+    "proven": true,
+    "tagline": "Empty the board using as few cells of your own as you can."
   },
-  {
-    "key": "loose-change",
-    "title": "Loose change",
-    "blurb": "Three lumps, and still only one cell needed.",
-    "map": "................\n................\n................\n...ooo....o.....\n..........o.....\n..........o.....\n.....oo.........\n....o..o........\n.....oo.........\n................\n................\n................",
-    "par": 1,
-    "solutions": 25,
-    "gens": 22,
-    "solution": [
-      [
-        5,
-        1
-      ]
-    ]
+  "hold": {
+    "key": "hold",
+    "name": "Hold on",
+    "verb": "fewest cells",
+    "proven": true,
+    "tagline": "Empty the board — but if only dirt is left alive, you have lost."
   },
-  {
-    "key": "bedrock",
-    "title": "Bedrock",
-    "blurb": "Rock is inert: nothing lives there and you cannot build on it.",
-    "map": "................\n................\n...ooo..........\n............o...\n.........o..o...\n....ooo..o..o...\n.........o......\n................\n................\n..##########....\n................\n................",
-    "par": 1,
-    "solutions": 22,
-    "gens": 42,
-    "solution": [
-      [
-        3,
-        0
-      ]
-    ]
+  "bloom": {
+    "key": "bloom",
+    "name": "Bloom",
+    "verb": "most alive",
+    "proven": true,
+    "tagline": "Add up to two cells and grow the board as large as you can by generation 40."
   },
-  {
-    "key": "odd-pair",
-    "title": "Odd pair",
-    "blurb": "This one wants two.",
-    "map": "................\n................\n................\n...o............\n..o.o.......o...\n...o........o...\n............o...\n................\n................\n................\n................\n................",
-    "par": 2,
-    "solutions": 7,
-    "gens": 34,
-    "solution": [
-      [
-        4,
-        1
-      ],
-      [
-        2,
-        2
-      ]
-    ]
-  },
-  {
-    "key": "quarry",
-    "title": "Quarry",
-    "blurb": "Plenty of dirt, plenty of rock, two cells.",
-    "map": "................\n..o.............\n.o.o..#.....oo..\n..o...#oo...oo..\n......o..o......\n......#oo.......\n......#.....o...\n......#.....o...\n............o...\n................\n................\n................",
-    "par": 2,
-    "solutions": 10,
-    "gens": 14,
-    "solution": [
-      [
-        10,
-        1
-      ],
-      [
-        2,
-        2
-      ]
-    ]
-  },
-  {
-    "key": "long-wall",
-    "title": "Long wall",
-    "blurb": "Five lumps split by a wall.",
-    "map": "................\n.............o..\n..o.....o....o..\n.o.o....o#...o..\n..o.....o#......\n.........#......\n.........#..o...\n....oo...#..o...\n....o.o..#..o...\n.....o...#......\n.........#......\n................",
-    "par": 2,
-    "solutions": 13,
-    "gens": 47,
-    "solution": [
-      [
-        11,
-        2
-      ],
-      [
-        2,
-        6
-      ]
-    ]
-  },
-  {
-    "key": "bullseye",
-    "title": "Bullseye",
-    "blurb": "Two lumps, one cell, one place it can go.",
-    "map": "................\n................\n................\n................\n................\n..o.............\n.o.o....ooo.....\n..o.............\n................\n................\n................\n................",
-    "par": 1,
-    "solutions": 1,
-    "gens": 49,
-    "solution": [
-      [
-        2,
-        6
-      ]
-    ]
-  },
-  {
-    "key": "hairline",
-    "title": "Hairline",
-    "blurb": "Eight cells of dirt and exactly one answer.",
-    "map": "................\n....oo..........\n....o.o.........\n.....o..........\n................\n................\n.ooo............\n................\n................\n................\n................\n................",
-    "par": 1,
-    "solutions": 1,
-    "gens": 26,
-    "solution": [
-      [
-        3,
-        4
-      ]
-    ]
-  },
-  {
-    "key": "split",
-    "title": "Split",
-    "blurb": "The wall separates them. One cell still does both.",
-    "map": "................\n.........#......\n.........#......\n.........#......\n.....oo..#......\n.....o.o........\n......o.........\n................\n................\n........ooo.....\n................\n................",
-    "par": 1,
-    "solutions": 1,
-    "gens": 15,
-    "solution": [
-      [
-        8,
-        7
-      ]
-    ]
-  },
-  {
-    "key": "housekeeping",
-    "title": "Housekeeping",
-    "blurb": "Five lumps, eighteen cells of dirt, one cell of yours.",
-    "map": "................\n.oo.............\n.oo........o....\n..........o.o...\n...........o....\n.....o..........\n.....o..........\n.oo..o..........\n.oo.......ooo...\n................\n................\n................",
-    "par": 1,
-    "solutions": 1,
-    "gens": 71,
-    "solution": [
-      [
-        7,
-        7
-      ]
-    ]
-  },
-  {
-    "key": "slow-burn",
-    "title": "Slow burn",
-    "blurb": "One cell, and well over a hundred generations of fallout.",
-    "map": "................\n...ooo...oo.....\n.........oo#....\n...........#....\n...........#....\n...........#....\n................\n..........o.....\n.....oo...o.....\n.....oo...o.....\n................\n................",
-    "par": 1,
-    "solutions": 1,
-    "gens": 137,
-    "solution": [
-      [
-        9,
-        8
-      ]
-    ]
-  },
-  {
-    "key": "through-wall",
-    "title": "Through the wall",
-    "blurb": "Two cells. Only one pair in the whole board works.",
-    "map": "................\n................\n.......o........\n.......o........\n.......o........\n.##########.....\n................\n.....o..........\n....o.o.........\n.....o..........\n................\n................",
-    "par": 2,
-    "solutions": 1,
-    "gens": 64,
-    "solution": [
-      [
-        6,
-        6
-      ],
-      [
-        6,
-        7
-      ]
-    ]
-  },
-  {
-    "key": "two-of-a-kind",
-    "title": "Two of a kind",
-    "blurb": "Symmetrical, and no kinder for it.",
-    "map": "................\n........#.......\n.....o..#.o.....\n....o.o.#.o.....\n.....o..#.o.....\n........#.......\n........#.......\n........#.......\n................\n................\n................\n................",
-    "par": 2,
-    "solutions": 1,
-    "gens": 84,
-    "solution": [
-      [
-        5,
-        3
-      ],
-      [
-        9,
-        3
-      ]
-    ]
+  "sweep": {
+    "key": "sweep",
+    "name": "Sweep",
+    "verb": "fewest generations",
+    "proven": false,
+    "tagline": "Every marked cell must be alive at least once. Take as few generations as you can."
   }
-];
+};
+window.LIFE_LEVELS = {
+  "clear": [
+    {
+      "key": "first-speck",
+      "title": "First speck",
+      "blurb": "One block of grime. A single cell is enough — find where.",
+      "map": "................\n................\n................\n................\n................\n.......oo.......\n.......oo.......\n................\n................\n................\n................\n................",
+      "par": 1,
+      "solutions": 16,
+      "gens": 5,
+      "solution": [
+        [
+          6,
+          3
+        ]
+      ]
+    },
+    {
+      "key": "loose-change",
+      "title": "Loose change",
+      "blurb": "Three lumps, and still only one cell needed.",
+      "map": "................\n................\n................\n...ooo....o.....\n..........o.....\n..........o.....\n.....oo.........\n....o..o........\n.....oo.........\n................\n................\n................",
+      "par": 1,
+      "solutions": 25,
+      "gens": 22,
+      "solution": [
+        [
+          5,
+          1
+        ]
+      ]
+    },
+    {
+      "key": "bedrock",
+      "title": "Bedrock",
+      "blurb": "Rock is inert: nothing lives there and you cannot build on it.",
+      "map": "................\n................\n...ooo..........\n............o...\n.........o..o...\n....ooo..o..o...\n.........o......\n................\n................\n..##########....\n................\n................",
+      "par": 1,
+      "solutions": 22,
+      "gens": 42,
+      "solution": [
+        [
+          3,
+          0
+        ]
+      ]
+    },
+    {
+      "key": "odd-pair",
+      "title": "Odd pair",
+      "blurb": "This one wants two.",
+      "map": "................\n................\n................\n...o............\n..o.o.......o...\n...o........o...\n............o...\n................\n................\n................\n................\n................",
+      "par": 2,
+      "solutions": 7,
+      "gens": 34,
+      "solution": [
+        [
+          4,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "key": "quarry",
+      "title": "Quarry",
+      "blurb": "Plenty of dirt, plenty of rock, two cells.",
+      "map": "................\n..o.............\n.o.o..#.....oo..\n..o...#oo...oo..\n......o..o......\n......#oo.......\n......#.....o...\n......#.....o...\n............o...\n................\n................\n................",
+      "par": 2,
+      "solutions": 10,
+      "gens": 14,
+      "solution": [
+        [
+          10,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "key": "long-wall",
+      "title": "Long wall",
+      "blurb": "Five lumps split by a wall.",
+      "map": "................\n.............o..\n..o.....o....o..\n.o.o....o#...o..\n..o.....o#......\n.........#......\n.........#..o...\n....oo...#..o...\n....o.o..#..o...\n.....o...#......\n.........#......\n................",
+      "par": 2,
+      "solutions": 13,
+      "gens": 47,
+      "solution": [
+        [
+          11,
+          2
+        ],
+        [
+          2,
+          6
+        ]
+      ]
+    },
+    {
+      "key": "bullseye",
+      "title": "Bullseye",
+      "blurb": "Two lumps, one cell, one place it can go.",
+      "map": "................\n................\n................\n................\n................\n..o.............\n.o.o....ooo.....\n..o.............\n................\n................\n................\n................",
+      "par": 1,
+      "solutions": 1,
+      "gens": 49,
+      "solution": [
+        [
+          2,
+          6
+        ]
+      ]
+    },
+    {
+      "key": "hairline",
+      "title": "Hairline",
+      "blurb": "Eight cells of dirt and exactly one answer.",
+      "map": "................\n....oo..........\n....o.o.........\n.....o..........\n................\n................\n.ooo............\n................\n................\n................\n................\n................",
+      "par": 1,
+      "solutions": 1,
+      "gens": 26,
+      "solution": [
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "key": "split",
+      "title": "Split",
+      "blurb": "The wall separates them. One cell still does both.",
+      "map": "................\n.........#......\n.........#......\n.........#......\n.....oo..#......\n.....o.o........\n......o.........\n................\n................\n........ooo.....\n................\n................",
+      "par": 1,
+      "solutions": 1,
+      "gens": 15,
+      "solution": [
+        [
+          8,
+          7
+        ]
+      ]
+    },
+    {
+      "key": "housekeeping",
+      "title": "Housekeeping",
+      "blurb": "Five lumps, eighteen cells of dirt, one cell of yours.",
+      "map": "................\n.oo.............\n.oo........o....\n..........o.o...\n...........o....\n.....o..........\n.....o..........\n.oo..o..........\n.oo.......ooo...\n................\n................\n................",
+      "par": 1,
+      "solutions": 1,
+      "gens": 71,
+      "solution": [
+        [
+          7,
+          7
+        ]
+      ]
+    },
+    {
+      "key": "slow-burn",
+      "title": "Slow burn",
+      "blurb": "One cell, and well over a hundred generations of fallout.",
+      "map": "................\n...ooo...oo.....\n.........oo#....\n...........#....\n...........#....\n...........#....\n................\n..........o.....\n.....oo...o.....\n.....oo...o.....\n................\n................",
+      "par": 1,
+      "solutions": 1,
+      "gens": 137,
+      "solution": [
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "key": "through-wall",
+      "title": "Through the wall",
+      "blurb": "Two cells. Only one pair in the whole board works.",
+      "map": "................\n................\n.......o........\n.......o........\n.......o........\n.##########.....\n................\n.....o..........\n....o.o.........\n.....o..........\n................\n................",
+      "par": 2,
+      "solutions": 1,
+      "gens": 64,
+      "solution": [
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "key": "two-of-a-kind",
+      "title": "Two of a kind",
+      "blurb": "Symmetrical, and no kinder for it.",
+      "map": "................\n........#.......\n.....o..#.o.....\n....o.o.#.o.....\n.....o..#.o.....\n........#.......\n........#.......\n........#.......\n................\n................\n................\n................",
+      "par": 2,
+      "solutions": 1,
+      "gens": 84,
+      "solution": [
+        [
+          5,
+          3
+        ],
+        [
+          9,
+          3
+        ]
+      ]
+    }
+  ],
+  "hold": [
+    {
+      "key": "hold-footing",
+      "title": "Footing",
+      "blurb": "Same idea as Clear, one extra rule: your own cells must outlast the dirt.",
+      "map": "................\n........ooo.....\n................\n................\n...........ooo..\n................\n................\n................\n................\n................\n................\n................",
+      "par": 2,
+      "solutions": 9,
+      "gens": 6,
+      "solution": [
+        [
+          8,
+          0
+        ],
+        [
+          10,
+          4
+        ]
+      ]
+    },
+    {
+      "key": "hold-relay",
+      "title": "Relay",
+      "blurb": "Your lineage has to carry all the way to the end.",
+      "map": "................\n................\n................\n.o..ooo.........\n.o..............\n.o..............\n................\n................\n................\n................\n................\n................",
+      "par": 2,
+      "solutions": 10,
+      "gens": 10,
+      "solution": [
+        [
+          1,
+          2
+        ],
+        [
+          6,
+          2
+        ]
+      ]
+    },
+    {
+      "key": "hold-bedrock",
+      "title": "Bedrock again",
+      "blurb": "You have cleared this board before. Now keep a cell of your own alive while you do it.",
+      "map": "................\n................\n...ooo..........\n............o...\n.........o..o...\n....ooo..o..o...\n.........o......\n................\n................\n..##########....\n................\n................",
+      "par": 2,
+      "solutions": 9,
+      "gens": 93,
+      "solution": [
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "key": "hold-tenant",
+      "title": "Tenant",
+      "blurb": "Stay on the board.",
+      "map": "................\n...ooo...oo.....\n........o..o....\n.........o.o....\n..........o.....\n................\n................\n................\n................\n................\n................\n................",
+      "par": 2,
+      "solutions": 8,
+      "gens": 25,
+      "solution": [
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          2
+        ]
+      ]
+    },
+    {
+      "key": "hold-thread",
+      "title": "By a thread",
+      "blurb": "One pair of cells in the whole board manages it.",
+      "map": "................\n................\n.o..............\n.o..............\n.o..............\n.....oo.........\n.....o.o........\n......o.........\n..........ooo...\n................\n................\n................",
+      "par": 2,
+      "solutions": 1,
+      "gens": 18,
+      "solution": [
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "key": "hold-wall",
+      "title": "Last one out",
+      "blurb": "Through the wall, and still standing at the end.",
+      "map": "................\n................\n.......o........\n.......o........\n.......o........\n.##########.....\n................\n.....o..........\n....o.o.........\n.....o..........\n................\n................",
+      "par": 2,
+      "solutions": 1,
+      "gens": 64,
+      "solution": [
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    }
+  ],
+  "bloom": [
+    {
+      "key": "bloom-sparks",
+      "title": "Sparks",
+      "blurb": "Two cells. Make as much life as you can by generation 40.",
+      "map": "................\n....oo..........\n....o.o.........\n.....o..........\n................\n................\n.ooo............\n................\n................\n................\n................\n................",
+      "gensLimit": 40,
+      "budget": 2,
+      "untouched": 8,
+      "par": 55,
+      "solution": [
+        [
+          5,
+          2
+        ],
+        [
+          2,
+          5
+        ]
+      ]
+    },
+    {
+      "key": "bloom-tinder",
+      "title": "Tinder",
+      "blurb": "The board barely changes on its own. Light it.",
+      "map": "................\n................\n......ooo.......\n................\n.ooo............\n......ooo.......\n...........o....\n...........o....\n...........o....\n................\n................\n................",
+      "gensLimit": 40,
+      "budget": 2,
+      "untouched": 10,
+      "par": 64,
+      "solution": [
+        [
+          13,
+          5
+        ],
+        [
+          7,
+          6
+        ]
+      ]
+    },
+    {
+      "key": "bloom-thicket",
+      "title": "Thicket",
+      "blurb": "Fourteen cells of dirt, sitting still.",
+      "map": "................\n................\n..oo...oo.......\n.o..o..oo.......\n..o.o...........\n...o............\n................\n................\n................\n.......ooo......\n................\n................",
+      "gensLimit": 40,
+      "budget": 2,
+      "untouched": 14,
+      "par": 66,
+      "solution": [
+        [
+          10,
+          2
+        ],
+        [
+          7,
+          5
+        ]
+      ]
+    },
+    {
+      "key": "bloom-orchard",
+      "title": "Orchard",
+      "blurb": "Nineteen already alive. Can you triple it?",
+      "map": "................\n.o.........oo...\n.o.........o.o..\n.o..........o...\n................\n......o.........\n.oo...o....ooo..\n.o.o..o.........\n..o.............\n................\n................\n................",
+      "gensLimit": 40,
+      "budget": 2,
+      "untouched": 19,
+      "par": 70,
+      "solution": [
+        [
+          12,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "key": "bloom-wildfire",
+      "title": "Wildfire",
+      "blurb": "The biggest swing on the board — from ten cells to sixty-odd.",
+      "map": "................\n...........oo...\n..........o..o..\n...........o.o..\n.....ooo....o...\n................\n................\n................\n................\n................\n................\n................",
+      "gensLimit": 40,
+      "budget": 2,
+      "untouched": 10,
+      "par": 65,
+      "solution": [
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          5
+        ]
+      ]
+    }
+  ],
+  "sweep": [
+    {
+      "key": "sweep-band",
+      "title": "Narrow band",
+      "blurb": "Every marked cell has to be alive at least once. Fewer generations is better.",
+      "map": "................\n................\n................\n....********....\n....********....\n....********....\n................\n................\n................\n................\n................\n................",
+      "budget": 6,
+      "targets": 24,
+      "par": 13,
+      "bestWhat": "rpent",
+      "bestUsed": 5,
+      "solution": [
+        [
+          9,
+          4
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          6
+        ]
+      ]
+    },
+    {
+      "key": "sweep-chamber",
+      "title": "The chamber",
+      "blurb": "A sealed room. Something in there has to touch every square.",
+      "map": "................\n..############..\n..#**********#..\n..#**********#..\n..#**********#..\n..#**********#..\n..#**********#..\n..#**********#..\n..############..\n................\n................\n................",
+      "budget": 8,
+      "targets": 60,
+      "par": 41,
+      "bestWhat": "rpent",
+      "bestUsed": 5,
+      "solution": [
+        [
+          11,
+          4
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          11,
+          6
+        ]
+      ]
+    },
+    {
+      "key": "sweep-diagonal",
+      "title": "Diagonal run",
+      "blurb": "A long slanted stripe, corner to corner.",
+      "map": "****............\n.****...........\n..****..........\n...****.........\n....****........\n.....****.......\n......****......\n.......****.....\n........****....\n.........****...\n..........****..\n...........****.",
+      "budget": 6,
+      "targets": 48,
+      "par": 48,
+      "bestWhat": "rpent",
+      "bestUsed": 5,
+      "solution": [
+        [
+          13,
+          5
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          13,
+          7
+        ]
+      ]
+    },
+    {
+      "key": "sweep-hall",
+      "title": "The long hall",
+      "blurb": "Wide open and too big to fill by hand. Something needs to travel.",
+      "map": "................\n.##############.\n.*************..\n.*************..\n.*************..\n.*************..\n.*************..\n.##############.\n................\n................\n................\n................",
+      "budget": 12,
+      "targets": 65,
+      "par": 23,
+      "bestWhat": "lwss",
+      "bestUsed": 9,
+      "solution": [
+        [
+          12,
+          2
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          11,
+          3
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          15,
+          4
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          14,
+          5
+        ]
+      ]
+    },
+    {
+      "key": "sweep-pillars",
+      "title": "Pillars",
+      "blurb": "Three bays behind stone. One seed cannot reach them all.",
+      "map": "................\n................\n.***#***#***....\n.***#***#***....\n.***#***#***....\n.***#***#***....\n.***#***#***....\n................\n................\n................\n................\n................",
+      "budget": 12,
+      "targets": 45,
+      "par": 40,
+      "bestWhat": "rpent+diehard",
+      "bestUsed": 12,
+      "solution": [
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          13,
+          2
+        ]
+      ]
+    }
+  ]
+};
 /* puzzle.js */
-/* Puzzle mode: clear every cell off a dirty board using as few new cells as
-   possible. Unlike the other two modes these boards are bounded — a torus
-   would make an escaping glider immortal, so the board could never empty.
-   Levels and their pars come from levels.js, generated by the solver. */
+/* Puzzle modes. Four goals over the same engine: bounded Life with cell
+   ownership, where your cells and the dirt are told apart by colour.
+
+   Unlike the other two modes these boards do not wrap. A torus would make an
+   escaping glider immortal, so a board could never be emptied or settle.
+
+   Targets come from tools/ and are re-checked there on every build: clear,
+   hold and bloom are exhaustive results, sweep is a best known. */
 (() => {
 'use strict';
 
-const LEVELS = window.LIFE_LEVELS;
-const BUDGET = 400;              // generations before an attempt is given up on
+const GOALS = window.LIFE_GOALS;
+const SETS = window.LIFE_LEVELS;
+const ORDER = ['clear', 'hold', 'bloom', 'sweep'];
+const BUDGET = 400;                  // generations before an attempt is abandoned
 const STORE = 'gol-puzzle-best';
 
-/* -------------------------------------------------------------------- colors */
+/* -------------------------------------------------------------------- paint */
 const PALETTE = {
   dead: '#0b0e13',
   rock: '#333c4f',
+  target: '#1b4150',                 // a square that still needs visiting
+  visited: '#2e6b5f',                // ...and one that has been
   mine: { fresh: '#eafff2', base: '#58d68d' },
   dirt: { fresh: '#f0dcc4', base: '#b0814e' },
 };
 const SETTLE = 12;
-
 const hex = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 const pack = ([r, g, b]) => (255 << 24 | b << 16 | g << 8 | r) >>> 0;
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-const DEAD_U32 = pack(hex(PALETTE.dead));
-const ROCK_U32 = pack(hex(PALETTE.rock));
+const DEAD_U32 = pack(hex(PALETTE.dead)), ROCK_U32 = pack(hex(PALETTE.rock));
+const TARGET_U32 = pack(hex(PALETTE.target)), VISITED_U32 = pack(hex(PALETTE.visited));
 const LUT = (() => {
   const lut = new Uint32Array(512);
   [PALETTE.mine, PALETTE.dirt].forEach((side, s) => {
@@ -672,49 +1152,66 @@ const stage = $('stage'), canvas = $('view'), ctx = canvas.getContext('2d', { al
 const elHint = $('hint'), elRun = $('btn-run');
 
 /* --------------------------------------------------------------------- state */
-let level = null, levelIndex = 0;
+let goalKey = 'clear', level = null, levelIndex = 0;
 let cols = 0, rows = 0, cellPx = 10, dpr = 1;
-let own, nown, ages, rock, prev1, prev2;
-let phase = 'edit';              // 'edit' | 'run' | 'done'
-let used = 0, generation = 0, population = 0, revealed = false;
-let dirty = true, showGrid = true, speed = 26;
+let own, nown, ages, rock, target, seen, prev1, prev2;
+let phase = 'edit';                  // 'edit' | 'run' | 'done'
+let used = 0, generation = 0, population = 0, mine = 0, covered = 0, needed = 0;
+let revealed = false, dirty = true, showGrid = true, speed = 26;
 const off = document.createElement('canvas');
 const offCtx = off.getContext('2d', { alpha: false });
 let imgData = null, buf32 = null;
 
+const goal = () => GOALS[goalKey];
+const budgetOf = () => level.budget || 0;                    // 0 = unlimited
+const lowerIsBetter = () => goalKey !== 'bloom';
+const scoreOf = () => goalKey === 'bloom' ? population : goalKey === 'sweep' ? generation : used;
+
 const best = (() => { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } })();
 const saveBest = () => { try { localStorage.setItem(STORE, JSON.stringify(best)); } catch { /* private mode */ } };
+const bestKey = l => `${goalKey}:${l.key}`;
 
 /* --------------------------------------------------------------------- setup */
 function loadLevel(i) {
   clearFlash();
   levelIndex = i;
-  level = LEVELS[i];
+  level = SETS[goalKey][i];
   const lines = level.map.split('\n');
   rows = lines.length;
   cols = Math.max(...lines.map(l => l.length));
   const n = cols * rows;
   own = new Uint8Array(n); nown = new Uint8Array(n); ages = new Uint8Array(n);
-  rock = new Uint8Array(n); prev1 = new Uint8Array(n); prev2 = new Uint8Array(n);
+  rock = new Uint8Array(n); target = new Uint8Array(n); seen = new Uint8Array(n);
+  prev1 = new Uint8Array(n); prev2 = new Uint8Array(n);
+  needed = 0;
   for (let y = 0; y < rows; y++)
     for (let x = 0; x < lines[y].length; x++) {
-      const c = lines[y][x], i2 = y * cols + x;
-      if (c === 'o' || c === 'O') { own[i2] = 2; ages[i2] = 255; }
-      else if (c === '#') rock[i2] = 1;
+      const c = lines[y][x], j = y * cols + x;
+      if (c === 'o' || c === 'O') { own[j] = 2; ages[j] = 255; }
+      else if (c === '#') rock[j] = 1;
+      else if (c === '*') { target[j] = 1; needed++; }
+      else if (c === '@') { target[j] = 1; needed++; own[j] = 2; ages[j] = 255; }
     }
   off.width = cols; off.height = rows;
   imgData = offCtx.createImageData(cols, rows);
   buf32 = new Uint32Array(imgData.data.buffer);
 
-  phase = 'edit'; used = 0; generation = 0; revealed = false;
+  phase = 'edit'; used = 0; generation = 0; revealed = false; covered = 0;
   countPopulation();
   $('result').classList.add('hidden');
   buildChips();
+  applyLabels();
   layout();
   syncUI();
 }
 
-function resetLevel() { loadLevel(levelIndex); }
+const resetLevel = () => loadLevel(levelIndex);
+
+function selectGoal(key) {
+  goalKey = key;
+  buildGoalChips();
+  loadLevel(0);
+}
 
 function layout() {
   const availW = Math.max(80, stage.clientWidth - 16), availH = Math.max(80, stage.clientHeight - 16);
@@ -729,43 +1226,47 @@ function layout() {
 }
 
 /* ---------------------------------------------------------------- simulation */
-/* Bounded board: out of bounds counts as dead. Rock counts as dead too, and
-   nothing is ever born on it. Colour follows the Immigration rule purely so
-   you can watch your cells spread through the dirt. */
+/* Bounded board: out of bounds counts as dead, rock counts as dead and never
+   holds a cell. A newborn takes the colour of the majority of its parents, so
+   you can watch your own cells spread through the dirt. */
 function step() {
   const w = cols, h = rows, o = own, no = nown;
-  let pop = 0;
+  let pop = 0, mn = 0;
   for (let y = 0; y < h; y++) {
     const y0 = y > 0, y1 = y < h - 1;
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (rock[i]) { no[i] = 0; ages[i] = 0; continue; }
       const x0 = x > 0, x1 = x < w - 1;
-      let n = 0, mine = 0;
-      const tally = j => { const v = o[j]; if (v) { n++; if (v === 1) mine++; } };
-      if (y0) { if (x0) tally(i - w - 1); tally(i - w); if (x1) tally(i - w + 1); }
-      if (x0) tally(i - 1); if (x1) tally(i + 1);
-      if (y1) { if (x0) tally(i + w - 1); tally(i + w); if (x1) tally(i + w + 1); }
-
+      let n = 0, a = 0;
+      const t = j => { const v = o[j]; if (v) { n++; if (v === 1) a++; } };
+      if (y0) { if (x0) t(i - w - 1); t(i - w); if (x1) t(i - w + 1); }
+      if (x0) t(i - 1); if (x1) t(i + 1);
+      if (y1) { if (x0) t(i + w - 1); t(i + w); if (x1) t(i + w + 1); }
       const self = o[i];
       let v = 0;
       if (self) { if (n === 2 || n === 3) v = self; }
-      else if (n === 3) v = mine >= 2 ? 1 : 2;
+      else if (n === 3) v = a >= 2 ? 1 : 2;
       no[i] = v;
       ages[i] = v && v === self ? (ages[i] < 255 ? ages[i] + 1 : 255) : 0;
-      if (v) pop++;
+      if (v) { pop++; if (v === 1) mn++; }
     }
   }
   const t = own; own = nown; nown = t;
-  population = pop;
+  population = pop; mine = mn;
   generation++;
   dirty = true;
 }
 
 function countPopulation() {
-  let p = 0;
-  for (let i = 0, n = cols * rows; i < n; i++) if (own[i]) p++;
-  population = p;
+  let p = 0, m = 0;
+  for (let i = 0, n = cols * rows; i < n; i++) if (own[i]) { p++; if (own[i] === 1) m++; }
+  population = p; mine = m;
+}
+
+function markSeen() {
+  for (let i = 0, n = cols * rows; i < n; i++)
+    if (own[i] && target[i] && !seen[i]) { seen[i] = 1; covered++; dirty = true; }
 }
 
 const settled = () => {
@@ -779,12 +1280,15 @@ const settled = () => {
   return true;
 };
 
-/* ------------------------------------------------------------------- drawing */
+/* -------------------------------------------------------------------- drawing */
 function render() {
   const n = cols * rows;
   for (let i = 0; i < n; i++) {
     const v = own[i];
-    buf32[i] = v ? LUT[(v - 1) * 256 + ages[i]] : (rock[i] ? ROCK_U32 : DEAD_U32);
+    buf32[i] = v ? LUT[(v - 1) * 256 + ages[i]]
+      : rock[i] ? ROCK_U32
+      : target[i] ? (seen[i] ? VISITED_U32 : TARGET_U32)
+      : DEAD_U32;
   }
   offCtx.putImageData(imgData, 0, 0);
   ctx.drawImage(off, 0, 0, cols, rows, 0, 0, canvas.width, canvas.height);
@@ -800,59 +1304,109 @@ function render() {
   }
 }
 
-/* --------------------------------------------------------------------- input */
-function cellAt(ev) {
-  const r = canvas.getBoundingClientRect();
-  const x = Math.floor((ev.clientX - r.left) / (r.width / cols));
-  const y = Math.floor((ev.clientY - r.top) / (r.height / rows));
-  return [x, y];
-}
-
+/* ---------------------------------------------------------------------- input */
 canvas.addEventListener('pointerdown', ev => {
   if (phase !== 'edit') return;
   ev.preventDefault();
-  const [x, y] = cellAt(ev);
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / (r.width / cols));
+  const y = Math.floor((ev.clientY - r.top) / (r.height / rows));
   if (x < 0 || y < 0 || x >= cols || y >= rows) return;
   const i = y * cols + x;
   if (rock[i]) { flash('Nothing can live on rock.'); return; }
-  if (own[i] === 2) { flash('That is dirt — you cannot remove it by hand.'); return; }
-  if (own[i] === 1) { own[i] = 0; used--; population--; }
-  else { own[i] = 1; ages[i] = 0; used++; population++; }
+  if (own[i] === 2) { flash('That is dirt — only Life can shift it.'); return; }
+  if (own[i] === 1) { own[i] = 0; used--; population--; mine--; }
+  else {
+    const cap = budgetOf();
+    if (cap && used >= cap) { flash(`This level gives you ${cap} cells. Take one back first.`); return; }
+    own[i] = 1; ages[i] = 0; used++; population++; mine++;
+  }
   dirty = true;
   syncUI();
 });
 canvas.addEventListener('contextmenu', ev => ev.preventDefault());
 
-/* ------------------------------------------------------------------- flow */
+/* ----------------------------------------------------------------------- flow */
 function startRun() {
   clearFlash();
   if (used === 0) { flash('Add at least one cell first.'); return; }
   phase = 'run';
   generation = 0;
+  covered = 0; seen.fill(0);
+  if (goalKey === 'sweep') markSeen();
   prev1.set(own); prev2.set(own);
   acc = 0; last = performance.now();
   syncUI();
 }
 
-function stopRun() { phase = 'edit'; syncUI(); }
+const stopRun = () => { phase = 'edit'; syncUI(); };
+
+/* One generation plus this goal's verdict. The order of these checks mirrors
+   tools/engine.js exactly, so the numbers in the game and the numbers the
+   solver proved are the same numbers. */
+function tick() {
+  prev2.set(prev1); prev1.set(own);
+  step();
+  if (goalKey === 'sweep') markSeen();
+
+  if (goalKey === 'bloom') {
+    if (generation >= level.gensLimit) finish(true);
+    return;
+  }
+  if (goalKey === 'sweep') {
+    if (covered === needed) return finish(true);
+    if (population === 0) return finish(false, `Everything died at generation ${generation} with ${needed - covered} square${needed - covered === 1 ? '' : 's'} never visited.`);
+    if (settled()) return finish(false, `The board settled at generation ${generation} with ${needed - covered} square${needed - covered === 1 ? '' : 's'} never visited, so it can never reach them.`);
+    if (generation >= BUDGET) return finish(false, `Still going after ${BUDGET} generations, ${needed - covered} square${needed - covered === 1 ? '' : 's'} short.`);
+    return;
+  }
+  if (population === 0) return finish(true);
+  if (goalKey === 'hold' && mine === 0)
+    return finish(false, `Your last cell died at generation ${generation} and only dirt is left. In this mode that is a loss, even though the board might still have cleared.`);
+  if (settled()) return finish(false, `The board settled after ${generation} generations and will never die on its own. Reset and try a different placement.`);
+  if (generation >= BUDGET) return finish(false, `Still going after ${BUDGET} generations. Reset and try a different placement.`);
+}
 
 function finish(won, reason) {
   clearFlash();
   phase = 'done';
-  const key = level.key;
-  if (won && !revealed && (best[key] === undefined || used < best[key])) { best[key] = used; saveBest(); }
-  $('result-title').textContent = won
-    ? (revealed ? 'Revealed' : used === level.par ? 'Perfect' : 'Cleared')
-    : 'Not clear';
+  const par = level.par;
+  const score = scoreOf();
+  const matched = lowerIsBetter() ? score <= par : score >= par;
+  const beat = goalKey === 'sweep' && score < par;
+
+  if (won && !revealed) {
+    const k = bestKey(level), prev = best[k];
+    if (prev === undefined || (lowerIsBetter() ? score < prev : score > prev)) { best[k] = score; saveBest(); }
+  }
+
+  $('result-title').textContent = !won ? (goalKey === 'hold' && reason && reason.startsWith('Your last cell') ? 'Only dirt left' : 'Not clear')
+    : revealed ? 'Revealed'
+    : beat ? 'A new best'
+    : matched ? 'Perfect'
+    : 'Done';
+
   const cells = n => `${n} cell${n === 1 ? '' : 's'}`;
-  $('result-body').textContent = won
-    ? (revealed
-        ? `Cleared with the revealed answer — ${cells(used)}, ${generation} generations. Reset and find it yourself to record a score.`
-        : used === level.par
-          ? `Cleared with ${cells(used)} in ${generation} generations, which is the fewest this board can be cleared with. Nothing wasted.`
-          : `Cleared with ${cells(used)} in ${generation} generations. It can be done with ${cells(level.par)}.`)
-    : reason;
-  $('btn-next').disabled = levelIndex >= LEVELS.length - 1;
+  let body;
+  if (!won) body = reason;
+  else if (revealed) body = `That is one answer, using ${cells(used)}. Reset and find it yourself to record a score.`;
+  else if (goalKey === 'bloom')
+    body = matched
+      ? `${population} alive at generation ${level.gensLimit}, from ${level.untouched} if you had left it alone. That is the most this board can reach with two cells.`
+      : `${population} alive at generation ${level.gensLimit}, up from ${level.untouched} untouched. Two cells can reach ${par}.`;
+  else if (goalKey === 'sweep')
+    body = beat
+      ? `Every square visited in ${generation} generations — better than the ${par} the search found. Nicely done.`
+      : matched
+        ? `Every square visited in ${generation} generations, matching the best known.`
+        : `Every square visited in ${generation} generations, with ${cells(used)}. The best known is ${par}.`;
+  else
+    body = matched
+      ? `Cleared with ${cells(used)} in ${generation} generations, which is the fewest this board can be cleared with. Nothing wasted.`
+      : `Cleared with ${cells(used)} in ${generation} generations. It can be done with ${cells(par)}.`;
+
+  $('result-body').textContent = body;
+  $('btn-next').disabled = levelIndex >= SETS[goalKey].length - 1;
   $('result').classList.remove('hidden');
   buildChips();
   syncUI();
@@ -861,28 +1415,53 @@ function finish(won, reason) {
 function reveal() {
   resetLevel();
   revealed = true;
-  for (const [x, y] of level.solution) { const i = y * cols + x; if (!own[i]) { own[i] = 1; ages[i] = 0; used++; population++; } }
+  for (const [x, y] of level.solution) {
+    const i = y * cols + x;
+    if (!own[i] && !rock[i]) { own[i] = 1; ages[i] = 0; used++; population++; mine++; }
+  }
   dirty = true;
-  flash(`One answer, using the fewest possible ${level.par} cell${level.par === 1 ? '' : 's'}. Press Run to watch it.`);
+  flash(`One answer, using ${used} cell${used === 1 ? '' : 's'}. Press Run to watch it.`);
   syncUI();
 }
 
-/* ------------------------------------------------------------------- chrome */
+/* --------------------------------------------------------------------- chrome */
+function buildGoalChips() {
+  const box = $('goal-chips');
+  box.innerHTML = '';
+  for (const key of ORDER) {
+    const g = GOALS[key];
+    const b = document.createElement('button');
+    b.className = 'chip' + (key === goalKey ? ' active' : '');
+    b.textContent = g.name;
+    b.title = g.tagline;
+    b.onclick = () => selectGoal(key);
+    box.appendChild(b);
+  }
+}
+
 function buildChips() {
   const box = $('level-chips');
   box.innerHTML = '';
-  LEVELS.forEach((l, i) => {
+  SETS[goalKey].forEach((l, i) => {
     const b = document.createElement('button');
     b.className = 'chip' + (i === levelIndex ? ' active' : '');
-    const score = best[l.key];
-    const mark = score === undefined ? '' : score === l.par ? ' ★' : ' ✓';
-    b.innerHTML = `${i + 1}${mark}`;
-    b.title = score === undefined
-      ? `${l.title} — clearable with ${l.par} cell${l.par === 1 ? '' : 's'}`
-      : `${l.title} — you cleared it with ${score} (fewest possible ${l.par})`;
+    const score = best[`${goalKey}:${l.key}`];
+    const hit = score !== undefined && (lowerIsBetter() ? score <= l.par : score >= l.par);
+    b.textContent = `${i + 1}${score === undefined ? '' : hit ? ' ★' : ' ✓'}`;
+    b.title = score === undefined ? l.title : `${l.title} — your best ${score}, target ${l.par}`;
     b.onclick = () => loadLevel(i);
     box.appendChild(b);
   });
+}
+
+/* Each goal measures something different, so the header relabels itself. */
+function applyLabels() {
+  const cap = budgetOf();
+  const set = (n, label) => { $('s' + n + 'l').textContent = label; };
+  set(0, cap ? `of ${cap} cells used` : 'cells used');
+  if (goalKey === 'bloom') { set(1, 'best possible'); set(2, 'alive'); set(3, `of ${level.gensLimit} gen`); }
+  else if (goalKey === 'sweep') { set(1, 'best known'); set(2, `of ${needed} visited`); set(3, 'gen'); }
+  else { set(1, 'fewest possible'); set(2, 'still alive'); set(3, 'gen'); }
 }
 
 let flashTimer = 0, flashing = false;
@@ -893,24 +1472,38 @@ function flash(msg) {
   flashTimer = setTimeout(() => { flashing = false; restoreHint(); }, 2800);
 }
 function clearFlash() { flashing = false; clearTimeout(flashTimer); }
+
 function restoreHint() {
-  if (flashing) return;              // a message is up; do not talk over it
-  if (phase === 'run') elHint.textContent = 'Running — every cell has to go, including yours.';
-  else if (phase === 'done') elHint.textContent = 'Reset to try again, or pick another level.';
-  else elHint.textContent = `Tap empty cells to add your own, then press Run. This board can be cleared with ${level.par} cell${level.par === 1 ? '' : 's'} — fewer is impossible.`;
+  if (flashing) return;                        // a message is up; do not talk over it
+  if (phase === 'run') { elHint.textContent = runningLine(); return; }
+  if (phase === 'done') { elHint.textContent = 'Reset to try again, or pick another level.'; return; }
+  elHint.textContent = `${level.title} — ${level.blurb} ${aimLine()}`;
+}
+
+function runningLine() {
+  if (goalKey === 'bloom') return 'Growing — the count that matters is the one at the end.';
+  if (goalKey === 'sweep') return 'Sweeping — every marked square has to light up at least once.';
+  if (goalKey === 'hold') return 'Running — clear the dirt, and keep a cell of your own alive while you do it.';
+  return 'Running — every cell has to go, including yours.';
+}
+
+function aimLine() {
+  const cap = budgetOf();
+  if (goalKey === 'bloom') return `Up to ${cap} cells; the most this board can reach is ${level.par} alive at generation ${level.gensLimit}.`;
+  if (goalKey === 'sweep') return `Up to ${cap} cells; the best known is ${level.par} generations.`;
+  return `This board can be cleared with ${level.par} cell${level.par === 1 ? '' : 's'} — fewer is impossible.`;
 }
 
 function syncUI() {
-  $('stat-used').textContent = used;
-  $('stat-par').textContent = level.par;
-  $('stat-gen').textContent = generation;
-  $('stat-dirt').textContent = population;
-  $('level-title').textContent = level.title;
-  $('level-blurb').textContent = level.blurb;
+  $('s0v').textContent = used;
+  $('s1v').textContent = level.par;
+  $('s2v').textContent = goalKey === 'sweep' ? covered : population;
+  $('s3v').textContent = generation;
+  $('s0v').parentElement.classList.toggle('over', !!budgetOf() && used > budgetOf());
   elRun.textContent = phase === 'run' ? '⏸ Stop' : '▶ Run';
   elRun.disabled = phase === 'done';
   $('btn-reveal').disabled = phase === 'run';
-  $('stat-used').parentElement.classList.toggle('over', used > level.par);
+  $('help-goal').textContent = goal().tagline;
   restoreHint();
 }
 
@@ -918,7 +1511,7 @@ elRun.onclick = () => (phase === 'run' ? stopRun() : startRun());
 $('btn-reset').onclick = resetLevel;
 $('btn-reveal').onclick = reveal;
 $('btn-retry').onclick = resetLevel;
-$('btn-next').onclick = () => loadLevel(Math.min(LEVELS.length - 1, levelIndex + 1));
+$('btn-next').onclick = () => loadLevel(Math.min(SETS[goalKey].length - 1, levelIndex + 1));
 $('btn-help').onclick = () => $('help').classList.remove('hidden');
 $('btn-help-close').onclick = () => $('help').classList.add('hidden');
 $('help').addEventListener('click', ev => { if (ev.target.id === 'help') $('help').classList.add('hidden'); });
@@ -936,7 +1529,7 @@ window.addEventListener('keydown', ev => {
   else if (k === 'n' && phase === 'done') $('btn-next').click();
 });
 
-/* ---------------------------------------------------------------------- loop */
+/* ----------------------------------------------------------------------- loop */
 let acc = 0, last = performance.now();
 function frame(now) {
   const dt = Math.min(now - last, 250);
@@ -944,15 +1537,8 @@ function frame(now) {
   if (phase === 'run') {
     acc += dt;
     const interval = 1000 / speed;
-    let budget = 6;
-    while (acc >= interval && phase === 'run' && budget-- > 0) {
-      prev2.set(prev1); prev1.set(own);
-      step();
-      acc -= interval;
-      if (population === 0) { finish(true); break; }
-      if (settled()) { finish(false, `The board settled after ${generation} generations and will never die on its own. Reset and try a different placement.`); break; }
-      if (generation >= BUDGET) { finish(false, `Still going after ${BUDGET} generations. Reset and try a different placement.`); break; }
-    }
+    let guard = 6;
+    while (acc >= interval && phase === 'run' && guard-- > 0) { tick(); acc -= interval; }
     if (acc > interval * 6) acc = 0;
     syncUI();
   }
@@ -960,7 +1546,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-/* --------------------------------------------------------------------- start */
+/* ---------------------------------------------------------------------- start */
 let resizeTimer = 0;
 const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layout, 80); };
 if (window.ResizeObserver) new ResizeObserver(onResize).observe(stage);
@@ -968,6 +1554,7 @@ window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', onResize);
 
 elSpeedOut.textContent = speed + '/s';
+buildGoalChips();
 loadLevel(0);
 requestAnimationFrame(frame);
 })();

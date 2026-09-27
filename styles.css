@@ -313,3 +313,13 @@ button.ghost { background: transparent; color: var(--dim); }
   border-radius: 4px;
   box-shadow: 0 0 0 1px #2f3949, 0 8px 30px rgba(0, 0, 0, .45);
 }
+
+/* --------------------------------------------------------- puzzle action bar */
+.actions { gap: 8px; }
+.actions .spacer { flex: 1 1 auto; }
+@media (max-width: 720px) {
+  .actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .actions::-webkit-scrollbar { display: none; }
+  .actions > * { flex: 0 0 auto; }
+  .actions .spacer { display: none; }
+}
