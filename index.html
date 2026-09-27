@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Conway's Game of Life — infinite torus</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <h1>Game of Life</h1>
+    <div class="stats">
+      <span><b id="stat-gen">0</b> gen</span>
+      <span><b id="stat-pop">0</b> alive</span>
+      <span><b id="stat-fps">0</b> fps</span>
+      <span class="dim" id="stat-size">0×0</span>
+    </div>
+  </header>
+
+  <div class="bar controls">
+    <div class="group">
+      <button id="btn-play" class="primary" aria-label="Play / pause">▶ Play</button>
+      <button id="btn-step" aria-label="Step one generation">⏭ Step</button>
+      <button id="btn-clear" aria-label="Clear the grid">✕ Clear</button>
+      <button id="btn-random" aria-label="Fill with random cells">✦ Random</button>
+    </div>
+    <label class="slider">
+      <span>Speed</span>
+      <input id="speed" type="range" min="1" max="121" value="20">
+      <output id="speed-out">20/s</output>
+    </label>
+    <label class="slider">
+      <span>Cell</span>
+      <input id="cellsize" type="range" min="2" max="28" value="10">
+      <output id="cellsize-out">10px</output>
+    </label>
+    <label class="check"><input id="agecolors" type="checkbox" checked><span>Age colors</span></label>
+    <label class="check"><input id="gridlines" type="checkbox" checked><span>Grid</span></label>
+  </div>
+
+  <div class="bar presets">
+    <span class="presets-label">Presets</span>
+    <div id="preset-chips" class="chips"></div>
+  </div>
+
+  <main id="stage">
+    <canvas id="view"></canvas>
+  </main>
+
+  <footer class="bar hint">
+    <span id="hint">Drag on the grid to draw — start on a live cell to erase. The world wraps around all four edges.</span>
+    <span class="dim keys">space play · s step · c clear · r random · esc cancel preset</span>
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
