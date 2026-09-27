@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Game of Life — puzzles</title>
+<meta name="theme-color" content="#141922">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life puzzles">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5'%3E%3Crect width='5' height='5' fill='%230b0e13'/%3E%3Cg fill='%2358d68d'%3E%3Crect x='2' y='1' width='1' height='1'/%3E%3Crect x='3' y='2' width='1' height='1'/%3E%3Crect x='1' y='3' width='1' height='1'/%3E%3Crect x='2' y='3' width='1' height='1'/%3E%3Crect x='3' y='3' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <h1>Game of Life</h1>
+    <nav class="modes">
+      <a href="index.html" class="mode">Sandbox</a>
+      <a href="versus.html" class="mode">2 players</a>
+      <a href="puzzle.html" class="mode active" aria-current="page">Puzzles</a>
+    </nav>
+    <div class="stats">
+      <span><b id="stat-used">0</b> / <span id="stat-par">1</span> cells</span>
+      <span><b id="stat-gen">0</b> gen</span>
+      <span><b id="stat-dirt">0</b> left</span>
+    </div>
+  </header>
+
+  <div class="bar levels">
+    <span class="presets-label">Level</span>
+    <div id="level-chips" class="chips"></div>
+  </div>
+
+  <div class="bar turnbar">
+    <span class="turn-label" id="level-title">First speck</span>
+    <span class="turn-sub dim" id="level-blurb"></span>
+    <span class="spacer"></span>
+    <button id="btn-run" class="primary">▶ Run</button>
+    <button id="btn-reset">↺ Reset</button>
+    <button id="btn-reveal" class="ghost">Reveal</button>
+  </div>
+
+  <main id="stage">
+    <canvas id="view"></canvas>
+    <div id="result" class="overlay hidden">
+      <div class="card">
+        <h2 id="result-title">Clear</h2>
+        <p id="result-body"></p>
+        <div class="card-actions">
+          <button id="btn-retry">Try again</button>
+          <button id="btn-next" class="primary">Next level ▸</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="bar controls">
+    <label class="slider">
+      <span>Speed</span>
+      <input id="speed" type="range" min="8" max="60" value="26">
+      <output id="speed-out">26/s</output>
+    </label>
+    <label class="check"><input id="gridlines" type="checkbox" checked><span>Grid</span></label>
+    <button id="btn-help" class="ghost">How to play</button>
+  </div>
+
+  <footer class="bar hint">
+    <span id="hint">Tap empty cells to add your own, then press Run. Clear every cell off the board.</span>
+  </footer>
+
+  <div id="help" class="overlay hidden">
+    <div class="card wide">
+      <h2>How to play</h2>
+      <ul>
+        <li><b>The board is dirty.</b> Add as few cells of your own as you can, press Run, and let ordinary Life rules do the rest. You win when <i>nothing</i> is left alive — your own cells have to die too.</li>
+        <li><b>Par is the proven minimum.</b> A solver searched every placement of one cell, then two, then three, and simulated each one. If a level says par 1, a single cell really does clear it.</li>
+        <li><b>Rock</b> is inert: nothing can live there and you cannot build on it. It blocks and it absorbs.</li>
+        <li><b>These boards do not wrap</b>, unlike the other two modes. Cells that reach an edge fall off, which is often exactly what you want.</li>
+        <li><b>It fails</b> when the board settles into something that will never die — a still life or a blinker — or when it is still going after 400 generations.</li>
+        <li>Stuck? <b>Reveal</b> shows a solution, but the level will be marked as revealed rather than solved.</li>
+      </ul>
+      <button id="btn-help-close" class="primary">Got it</button>
+    </div>
+  </div>
+</div>
+<script src="levels.js"></script>
+<script src="puzzle.js"></script>
+</body>
+</html>

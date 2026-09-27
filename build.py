@@ -14,6 +14,7 @@ SITE = "https://pmomot.github.io/game-of-life/"
 BUILDS = [
     ("index.html", "game-of-life.html", ["patterns.js", "app.js"]),
     ("versus.html", "game-of-life-versus.html", ["patterns.js", "versus.js"]),
+    ("puzzle.html", "game-of-life-puzzles.html", ["levels.js", "puzzle.js"]),
 ]
 
 
@@ -29,9 +30,9 @@ def build(page, out, scripts):
     html = html.replace(f'<script src="{scripts[0]}"></script>', f"<script>\n{joined}\n</script>")
 
     # links to the other mode must resolve away from this file
-    html = re.sub(r'href="(index|versus)\.html"', lambda m: f'href="{SITE}{m.group(1)}.html"', html)
+    html = re.sub(r'href="(index|versus|puzzle)\.html"', lambda m: f'href="{SITE}{m.group(1)}.html"', html)
 
-    assert "<style>" in html and "LIFE_PATTERNS" in html and "src=" not in html, f"{page} did not fully inline"
+    assert "<style>" in html and "src=" not in html, f"{page} did not fully inline"
     (HERE / out).write_text(html)
     print(f"{page:14} -> {out:26} {len(html) // 1024} KB")
 

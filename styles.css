@@ -293,3 +293,18 @@ button.ghost { background: transparent; color: var(--dim); }
   .controls::-webkit-scrollbar { display: none; }
   .controls > * { flex: 0 0 auto; }
 }
+
+/* --------------------------------------------------------------------- puzzle */
+.levels { gap: 8px; flex-wrap: nowrap; }
+.levels .chip { min-width: 38px; text-align: center; }
+.stats .over b { color: #f0953d; }
+.card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+/* the arena is bounded, unlike the other modes — the frame says so */
+#stage canvas {
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px #2f3949, 0 8px 30px rgba(0, 0, 0, .45);
+}
