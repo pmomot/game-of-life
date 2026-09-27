@@ -226,6 +226,7 @@ function startRound() {
 }
 
 function startTurn(p) {
+  clearFlash();
   phase = 'place';
   current = p;
   placed.clear();
@@ -236,6 +237,7 @@ function startTurn(p) {
 }
 
 function finishTurn() {
+  clearFlash();
   turnIndex++;
   if (turnIndex < 2) { startTurn(order[turnIndex]); return; }
   phase = 'run';
@@ -293,7 +295,12 @@ function stamp(p, cx, cy) {
   const ox = cx - (w >> 1), oy = cy - (h >> 1);
   const targets = pts.map(([x, y]) => [((ox + x) % cols + cols) % cols, ((oy + y) % rows + rows) % rows]);
   if (targets.length > energy[current]) { flash(`${p.name} costs ${targets.length} — you have ${energy[current]}.`); return; }
-  if (!targets.every(([x, y]) => canPlace(x, y))) { flash(`No room — the whole ${p.name} must land in your glow.`); return; }
+  if (!targets.every(([x, y]) => canPlace(x, y))) {
+    flash(halfMode
+      ? `No room — the whole ${p.name} must fit on your ${current === 1 ? 'left' : 'right'} half.`
+      : `No room — the whole ${p.name} must land inside your glow.`);
+    return;
+  }
   for (const [x, y] of targets) place(x, y);
   selectPreset(null);
 }
@@ -387,13 +394,16 @@ function selectPreset(p) {
   } else if (phase === 'place') restoreHint();
 }
 
-let flashTimer = 0;
+let flashTimer = 0, flashing = false;
 function flash(msg) {
   elHint.textContent = msg;
+  flashing = true;
   clearTimeout(flashTimer);
-  flashTimer = setTimeout(restoreHint, 2600);
+  flashTimer = setTimeout(() => { flashing = false; restoreHint(); }, 2600);
 }
+function clearFlash() { flashing = false; clearTimeout(flashTimer); }
 function restoreHint() {
+  if (flashing) return;              // a message is up; do not talk over it
   if (phase === 'run') elHint.textContent = 'Running the board — patterns collide, colonies trade ground.';
   else if (phase === 'over') elHint.textContent = 'Match over.';
   else if (halfMode) elHint.textContent = `Place anywhere on your ${current === 1 ? 'left' : 'right'} half. Tap a cell again to take it back.`;

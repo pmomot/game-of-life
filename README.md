@@ -80,12 +80,13 @@ edge, which is usually what you want. **Rock** is inert: nothing lives on it and
 cannot build there. An attempt fails when the board settles into something that will
 never die, or is still going after 400 generations.
 
-### Par is a proven minimum, not a guess
+### "Fewest possible" is proven, not a guess
 
 `tools/solve.js` searches *every* placement of one cell, then two, then three, near
 the dirt, and simulates each to see whether the board empties. A level only ships
-with the smallest k that works, along with how many placements at that k succeed —
-the honest measure of how tight it is. Placements far from the dirt cannot matter at
+with the smallest k that works — the number the game shows as "fewest possible" —
+along with how many placements at that k succeed, the honest measure of how tight
+it is. Placements far from the dirt cannot matter at
 these sizes: one or two lone cells die immediately and three make a block or a
 blinker, so anything useful has to touch the dirt's neighbourhood.
 
@@ -94,9 +95,10 @@ each layout, and reports the tightest — that is where most of the levels came 
 Of 882 random layouts, 881 were solvable with two cells or fewer, so the game is
 about finding the exact square rather than spending more cells.
 
-The thirteen levels run from *First speck* (par 1, sixteen placements work) to
-*Two of a kind* (par 2, exactly one pair in the whole board works). Seven of them
-have a single solution. Best scores are kept in `localStorage`; a level solved with
+The thirteen levels run from *First speck* (one cell, sixteen placements work) to
+*Two of a kind* (two cells, exactly one pair in the whole board works). Seven of
+them have a single solution. A level number shows ★ when you cleared it with the
+fewest possible cells and ✓ when you cleared it with more. Best scores are kept in `localStorage`; a level solved with
 **Reveal** is marked as revealed rather than scored.
 
 ## Presets

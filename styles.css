@@ -301,6 +301,8 @@ button.ghost { background: transparent; color: var(--dim); }
 .levels { gap: 8px; flex-wrap: nowrap; }
 .levels .chip { min-width: 38px; text-align: center; }
 .stats .over b { color: #f0953d; }
+.stats .goal { color: #6f7a8c; }
+.stats .goal b { color: #9aa6b8; }
 .card-actions {
   display: flex;
   gap: 8px;

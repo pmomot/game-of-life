@@ -53,6 +53,7 @@ const saveBest = () => { try { localStorage.setItem(STORE, JSON.stringify(best))
 
 /* --------------------------------------------------------------------- setup */
 function loadLevel(i) {
+  clearFlash();
   levelIndex = i;
   level = LEVELS[i];
   const lines = level.map.split('\n');
@@ -190,6 +191,7 @@ canvas.addEventListener('contextmenu', ev => ev.preventDefault());
 
 /* ------------------------------------------------------------------- flow */
 function startRun() {
+  clearFlash();
   if (used === 0) { flash('Add at least one cell first.'); return; }
   phase = 'run';
   generation = 0;
@@ -201,17 +203,20 @@ function startRun() {
 function stopRun() { phase = 'edit'; syncUI(); }
 
 function finish(won, reason) {
+  clearFlash();
   phase = 'done';
   const key = level.key;
   if (won && !revealed && (best[key] === undefined || used < best[key])) { best[key] = used; saveBest(); }
   $('result-title').textContent = won
-    ? (revealed ? 'Revealed' : used === level.par ? 'Par!' : 'Cleared')
+    ? (revealed ? 'Revealed' : used === level.par ? 'Perfect' : 'Cleared')
     : 'Not clear';
+  const cells = n => `${n} cell${n === 1 ? '' : 's'}`;
   $('result-body').textContent = won
     ? (revealed
-        ? `Cleared with the revealed solution in ${used} cell${used === 1 ? '' : 's'}, ${generation} generations. Reset and try it yourself to record a score.`
-        : `${used} cell${used === 1 ? '' : 's'}, ${generation} generations. Par is ${level.par}.` +
-          (used === level.par ? ' Nothing was wasted.' : ` ${used - level.par} more than needed.`))
+        ? `Cleared with the revealed answer — ${cells(used)}, ${generation} generations. Reset and find it yourself to record a score.`
+        : used === level.par
+          ? `Cleared with ${cells(used)} in ${generation} generations, which is the fewest this board can be cleared with. Nothing wasted.`
+          : `Cleared with ${cells(used)} in ${generation} generations. It can be done with ${cells(level.par)}.`)
     : reason;
   $('btn-next').disabled = levelIndex >= LEVELS.length - 1;
   $('result').classList.remove('hidden');
@@ -224,7 +229,7 @@ function reveal() {
   revealed = true;
   for (const [x, y] of level.solution) { const i = y * cols + x; if (!own[i]) { own[i] = 1; ages[i] = 0; used++; population++; } }
   dirty = true;
-  flash(`A solution at par ${level.par}. Press Run to watch it.`);
+  flash(`One answer, using the fewest possible ${level.par} cell${level.par === 1 ? '' : 's'}. Press Run to watch it.`);
   syncUI();
 }
 
@@ -238,22 +243,27 @@ function buildChips() {
     const score = best[l.key];
     const mark = score === undefined ? '' : score === l.par ? ' ★' : ' ✓';
     b.innerHTML = `${i + 1}${mark}`;
-    b.title = l.title;
+    b.title = score === undefined
+      ? `${l.title} — clearable with ${l.par} cell${l.par === 1 ? '' : 's'}`
+      : `${l.title} — you cleared it with ${score} (fewest possible ${l.par})`;
     b.onclick = () => loadLevel(i);
     box.appendChild(b);
   });
 }
 
-let flashTimer = 0;
+let flashTimer = 0, flashing = false;
 function flash(msg) {
   elHint.textContent = msg;
+  flashing = true;
   clearTimeout(flashTimer);
-  flashTimer = setTimeout(restoreHint, 2800);
+  flashTimer = setTimeout(() => { flashing = false; restoreHint(); }, 2800);
 }
+function clearFlash() { flashing = false; clearTimeout(flashTimer); }
 function restoreHint() {
+  if (flashing) return;              // a message is up; do not talk over it
   if (phase === 'run') elHint.textContent = 'Running — every cell has to go, including yours.';
   else if (phase === 'done') elHint.textContent = 'Reset to try again, or pick another level.';
-  else elHint.textContent = `Tap empty cells to add your own, then press Run. Par for this level is ${level.par} cell${level.par === 1 ? '' : 's'}.`;
+  else elHint.textContent = `Tap empty cells to add your own, then press Run. This board can be cleared with ${level.par} cell${level.par === 1 ? '' : 's'} — fewer is impossible.`;
 }
 
 function syncUI() {

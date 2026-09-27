@@ -22,9 +22,10 @@
       <a href="puzzle.html" class="mode active" aria-current="page">Puzzles</a>
     </nav>
     <div class="stats">
-      <span><b id="stat-used">0</b> / <span id="stat-par">1</span> cells</span>
+      <span><b id="stat-used">0</b> cells used</span>
+      <span class="goal">fewest possible <b id="stat-par">1</b></span>
+      <span><b id="stat-dirt">0</b> still alive</span>
       <span><b id="stat-gen">0</b> gen</span>
-      <span><b id="stat-dirt">0</b> left</span>
     </div>
   </header>
 
@@ -75,7 +76,8 @@
       <h2>How to play</h2>
       <ul>
         <li><b>The board is dirty.</b> Add as few cells of your own as you can, press Run, and let ordinary Life rules do the rest. You win when <i>nothing</i> is left alive — your own cells have to die too.</li>
-        <li><b>Par is the proven minimum.</b> A solver searched every placement of one cell, then two, then three, and simulated each one. If a level says par 1, a single cell really does clear it.</li>
+        <li><b>"Fewest possible" is proven, not estimated.</b> A solver searched every placement of one cell, then two, then three, and simulated each one. If a board says it can be cleared with one cell, then one cell really does clear it — and no placement of any single cell elsewhere would have worked any better.</li>
+        <li><b>The level numbers</b> show ★ when you cleared that board with the fewest possible cells, and ✓ when you cleared it with more.</li>
         <li><b>Rock</b> is inert: nothing can live there and you cannot build on it. It blocks and it absorbs.</li>
         <li><b>These boards do not wrap</b>, unlike the other two modes. Cells that reach an edge fall off, which is often exactly what you want.</li>
         <li><b>It fails</b> when the board settles into something that will never die — a still life or a blinker — or when it is still going after 400 generations.</li>
