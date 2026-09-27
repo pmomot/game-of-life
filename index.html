@@ -16,6 +16,10 @@
 <div id="app">
   <header class="bar">
     <h1>Game of Life</h1>
+    <nav class="modes">
+      <a href="index.html" class="mode active" aria-current="page">Sandbox</a>
+      <a href="versus.html" class="mode">2 players</a>
+    </nav>
     <div class="stats">
       <span><b id="stat-gen">0</b> gen</span>
       <span><b id="stat-pop">0</b> alive</span>
@@ -59,6 +63,7 @@
     <span class="dim keys">space play · s step · c clear · r random · esc cancel preset</span>
   </footer>
 </div>
+<script src="patterns.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

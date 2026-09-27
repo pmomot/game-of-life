@@ -168,3 +168,128 @@ canvas {
   .hint .keys { display: none; }
   button { padding: 8px 12px; }
 }
+
+/* ---------------------------------------------------------------- mode switch */
+.modes {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.mode {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: var(--dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mode:hover { color: var(--text); }
+.mode.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- scoreboard */
+.scoreboard {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  transition: border-color .15s, background .15s;
+}
+.side b { color: var(--text); font-weight: 600; }
+.side .who { color: var(--text); font-weight: 600; }
+.side .swatch {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+#side-1 .swatch { background: #4d9ef0; }
+#side-2 .swatch { background: #f0953d; }
+#side-1.acting { border-color: #4d9ef0; background: rgba(77, 158, 240, .12); }
+#side-2.acting { border-color: #f0953d; background: rgba(240, 149, 61, .12); }
+
+/* ------------------------------------------------------------------- turn bar */
+.turnbar { gap: 12px; }
+.turn-label { font-size: 14px; font-weight: 600; }
+.turn-sub { font-size: 12px; }
+.spacer { flex: 1 1 auto; }
+button:disabled { opacity: .45; cursor: default; }
+button.ghost { background: transparent; color: var(--dim); }
+.chip .cost {
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+.chip.active .cost { color: inherit; opacity: .7; }
+.presets.disabled { opacity: .4; pointer-events: none; }
+
+/* -------------------------------------------------------------------- overlay */
+#stage { position: relative; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 10, .78);
+  padding: 20px;
+  z-index: 10;
+}
+.overlay.hidden { display: none; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  max-width: 380px;
+  text-align: center;
+}
+.card.wide { max-width: 560px; text-align: left; max-height: 80vh; overflow-y: auto; }
+.card h2 { margin: 0 0 10px; font-size: 19px; }
+.card p { margin: 0 0 18px; color: var(--dim); font-size: 13px; }
+.card ul { margin: 0 0 18px; padding-left: 18px; color: var(--dim); font-size: 13px; }
+.card li { margin-bottom: 9px; }
+.card li b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 720px) {
+  header.bar h1 { display: none; }
+  .bar { padding: 6px 10px; gap: 8px; }
+  .scoreboard { gap: 6px; }
+  .side { padding: 4px 8px; gap: 5px; }
+  .side .who { display: none; }
+  /* keep the label, Done and Restart on one row; the round line drops below */
+  .turnbar .spacer { display: none; }
+  .turn-label {
+    font-size: 13px;
+    flex: 1 1 0;          /* zero basis, so the buttons never get wrapped off the row */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .turn-sub { width: 100%; order: 3; }
+  /* one scrollable row rather than two stacked ones */
+  .controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .controls::-webkit-scrollbar { display: none; }
+  .controls > * { flex: 0 0 auto; }
+}
