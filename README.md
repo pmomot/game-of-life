@@ -4,7 +4,11 @@ A dependency-free HTML/JS implementation on a **toroidal** world: the grid fills
 screen width, and anything that leaves one edge reappears on the opposite one, so
 gliders and spaceships travel forever.
 
+**Live: https://pmomot.github.io/game-of-life/**
+
 Open `index.html` in a browser — there is no build step and no server needed.
+`game-of-life.html` is the same app as a single self-contained file, handy for
+AirDropping to a phone or opening offline.
 
 ## Controls
 
